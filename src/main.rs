@@ -1,3 +1,5 @@
+mod models;
+
 use dotenv::dotenv;
 
 extern crate dotenv;
