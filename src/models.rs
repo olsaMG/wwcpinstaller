@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WizepassConfig {
-    wizepassauth: WizepassAuthConfig,
-    wwcp: WWCPConfig,
-    wcs: WCSConfig,
+    pub wizepassauth: WizepassAuthConfig,
+    pub wwcp: WWCPConfig,
+    pub wcs: WCSConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WizepassAuthConfig {
     pub url: String,
     pub instance_id: String,
@@ -18,15 +18,16 @@ pub struct WizepassAuthConfig {
     // pub user_identifier_value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WWCPConfig {
-    loglevel: Loglevel,
+    pub loglevel: Loglevel,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WCSConfig {
-    loglevel: Loglevel,
+    pub loglevel: Loglevel,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Loglevel(String);
+//TODO: fix type
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Loglevel(pub String);
