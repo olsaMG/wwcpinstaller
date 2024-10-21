@@ -4289,6 +4289,7 @@ dependencies = [
 name = "wpconfig"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "dotenv",
  "eframe",
  "egui_extras",

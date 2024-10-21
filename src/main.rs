@@ -2,6 +2,7 @@
 
 mod models;
 
+use anyhow::{Context as anyhow_context, Result};
 use dotenv::dotenv;
 use eframe::egui::{self, Context, Vec2};
 use log::info;
@@ -31,6 +32,21 @@ fn main() -> eframe::Result {
     let mut wcs_config = WCSConfig {
         loglevel: Loglevel("".to_string()),
     };
+
+    let mut cert_path = String::new();
+
+    if let Ok(config) = read_config() {
+        info!("Importing existing config");
+        wizepass_auth_config = config.wizepassauth;
+        wwcp_config = config.wwcp;
+        wcs_config = config.wcs;
+        loglevel = wcs_config.loglevel.0.clone().into();
+        if let Some(ref path) = wizepass_auth_config.cert_path {
+            cert_path = path.to_string();
+        }
+    } else {
+        info!("No existing config");
+    }
 
     eframe::run_simple_native("Wizepass config", options, move |ctx, _frame| {
         // ctx.set_theme(Theme::Light);
@@ -70,12 +86,8 @@ fn main() -> eframe::Result {
                         .labelled_by(rp_id.id);
                     ui.end_row();
 
-                    let mut new_path = String::new();
-
-                    let cert_path = ui.label("Certificate path (Optional): ");
-                    ui.text_edit_singleline(&mut new_path)
-                        .labelled_by(cert_path.id);
-                    wizepass_auth_config.cert_path = Some(new_path);
+                    ui.label("Certificate path (Optional): ");
+                    ui.text_edit_singleline(&mut cert_path);
                     ui.end_row();
 
                     ui.label("Loglevel: ");
@@ -97,11 +109,14 @@ fn main() -> eframe::Result {
             .show(ctx, |ui| {
                 ui.centered_and_justified(|ui| {
                     if ui.button("Create").clicked() {
-                        let wizepass_config = WizepassConfig {
+                        let mut wizepass_config = WizepassConfig {
                             wizepassauth: wizepass_auth_config.clone(),
                             wwcp: wwcp_config.clone(),
                             wcs: wcs_config.clone(),
                         };
+                        if !cert_path.is_empty() {
+                            wizepass_config.wizepassauth.cert_path = Some(cert_path.clone());
+                        }
                         create_toml(ctx.clone(), wizepass_config)
                     }
                 });
@@ -120,4 +135,9 @@ fn create_toml(ctx: Context, wizepass_config: WizepassConfig) {
     std::thread::spawn(move || {
         ctx.send_viewport_cmd(egui::ViewportCommand::Close);
     });
+}
+
+fn read_config() -> Result<WizepassConfig> {
+    let file = std::fs::read_to_string("config.toml").context("no existing config")?;
+    toml::from_str(&file).context("could not create toml")
 }

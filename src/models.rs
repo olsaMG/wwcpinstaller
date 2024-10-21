@@ -30,7 +30,6 @@ pub struct WCSConfig {
     pub loglevel: Loglevel,
 }
 
-//TODO: fix type
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Loglevel(pub String);
 
@@ -58,6 +57,19 @@ impl fmt::Display for TracingLevel {
             TracingLevel::Error => write!(f, "error"),
             TracingLevel::Trace => write!(f, "trace"),
             TracingLevel::Warn => write!(f, "warn"),
+        }
+    }
+}
+
+impl From<String> for TracingLevel {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "info" => TracingLevel::Info,
+            "debug" => TracingLevel::Debug,
+            "error" => TracingLevel::Error,
+            "trace" => TracingLevel::Trace,
+            "warn" => TracingLevel::Warn,
+            _ => TracingLevel::Info,
         }
     }
 }
