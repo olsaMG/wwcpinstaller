@@ -4,8 +4,8 @@ mod models;
 
 use anyhow::{Context as anyhow_context, Result};
 use dotenv::dotenv;
-use eframe::egui::{self, Context, Vec2};
-use log::info;
+use eframe::egui::{self, Context, Vec2, Window};
+use log::{debug, error, info};
 use models::{Loglevel, TracingLevel, WCSConfig, WWCPConfig, WizepassAuthConfig, WizepassConfig};
 
 fn main() -> eframe::Result {
@@ -16,6 +16,8 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default().with_inner_size([420.0, 340.0]),
         ..Default::default()
     };
+
+    let mut open_close_window = false;
 
     let mut wizepass_auth_config = WizepassAuthConfig {
         url: "".to_string(),
@@ -45,7 +47,7 @@ fn main() -> eframe::Result {
             cert_path = path.to_string();
         }
     } else {
-        info!("No existing config");
+        error!("No existing config creating a new");
     }
 
     eframe::run_simple_native("Wizepass config", options, move |ctx, _frame| {
@@ -66,6 +68,7 @@ fn main() -> eframe::Result {
                 ui.add_space(10.0);
             });
 
+            //TODO: Input validation??
             egui::Grid::new("config")
                 .num_columns(2)
                 .spacing([8.0, 10.0])
@@ -103,41 +106,62 @@ fn main() -> eframe::Result {
 
                     loglevel.set_loglevel(&mut wwcp_config, &mut wcs_config);
                 });
+
+            ui.add_space(10.0);
+            ui.centered_and_justified(|ui| {
+                if ui.button("Create").clicked() {
+                    let mut wizepass_config = WizepassConfig {
+                        wizepassauth: wizepass_auth_config.clone(),
+                        wwcp: wwcp_config.clone(),
+                        wcs: wcs_config.clone(),
+                    };
+                    if !cert_path.is_empty() {
+                        wizepass_config.wizepassauth.cert_path = Some(cert_path.clone());
+                    }
+                    create_toml(wizepass_config);
+
+                    info!("Open created window");
+                    open_close_window = true;
+                };
+            });
         });
-        egui::TopBottomPanel::new(egui::panel::TopBottomSide::Bottom, "buttons")
-            .exact_height(50.0)
+
+        Window::new("Created")
+            .open(&mut open_close_window)
+            .title_bar(false)
+            .resizable(false)
+            .auto_sized()
             .show(ctx, |ui| {
+                ui.vertical_centered_justified(|ui| {
+                    ui.add_space(160.);
+                    ui.heading("Config created ...");
+                    ui.add_space(100.);
+                });
                 ui.centered_and_justified(|ui| {
-                    if ui.button("Create").clicked() {
-                        let mut wizepass_config = WizepassConfig {
-                            wizepassauth: wizepass_auth_config.clone(),
-                            wwcp: wwcp_config.clone(),
-                            wcs: wcs_config.clone(),
-                        };
-                        if !cert_path.is_empty() {
-                            wizepass_config.wizepassauth.cert_path = Some(cert_path.clone());
-                        }
-                        create_toml(ctx.clone(), wizepass_config)
+                    if ui.button("Quit").clicked() {
+                        close_program(ctx.clone());
                     }
                 });
             });
     })
 }
 
-fn create_toml(ctx: Context, wizepass_config: WizepassConfig) {
-    info!("Creating toml file");
+fn create_toml(wizepass_config: WizepassConfig) {
+    debug!("Creating toml file");
     let toml = toml::to_string(&wizepass_config).unwrap();
 
     std::fs::write("config.toml", toml).expect("Error writing file");
-
-    info!("Exiting program");
-
-    std::thread::spawn(move || {
-        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-    });
 }
 
 fn read_config() -> Result<WizepassConfig> {
+    debug!("Reading config");
     let file = std::fs::read_to_string("config.toml").context("no existing config")?;
     toml::from_str(&file).context("could not create toml")
+}
+
+fn close_program(ctx: Context) {
+    info!("Exiting program");
+    std::thread::spawn(move || {
+        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+    });
 }
