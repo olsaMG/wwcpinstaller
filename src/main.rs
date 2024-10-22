@@ -2,9 +2,15 @@
 
 mod models;
 
+use std::{
+    ffi::OsStr,
+    path::{Path, PathBuf},
+};
+
 use anyhow::{Context as anyhow_context, Result};
 use dotenv::dotenv;
 use eframe::egui::{self, Color32, Context, Theme, Vec2, Window};
+use egui_file::FileDialog;
 use log::{debug, error, info};
 use models::{Loglevel, TracingLevel, WCSConfig, WWCPConfig, WizepassAuthConfig, WizepassConfig};
 
@@ -13,7 +19,7 @@ fn main() -> eframe::Result {
     pretty_env_logger::init();
 
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([420.0, 340.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([480.0, 340.0]),
         ..Default::default()
     };
 
@@ -49,6 +55,9 @@ fn main() -> eframe::Result {
     } else {
         error!("No existing config creating a new");
     }
+
+    let mut open_file_dialog: Option<FileDialog> = None;
+    let mut opened_file: Option<PathBuf> = None;
 
     eframe::run_simple_native("Wizepass config", options, move |ctx, _frame| {
         ctx.set_theme(Theme::Light);
@@ -92,8 +101,32 @@ fn main() -> eframe::Result {
                     ui.end_row();
 
                     ui.label("Certificate path (Optional): ");
-                    ui.text_edit_singleline(&mut cert_path);
+                    if ui.button("Select Certificate").clicked() {
+                        let filter = Box::new({
+                            let ext = Some(OsStr::new("pem"));
+                            move |path: &Path| -> bool { path.extension() == ext }
+                        });
+
+                        let mut dialog =
+                            FileDialog::open_file(opened_file.clone()).show_files_filter(filter);
+                        dialog.open();
+                        open_file_dialog = Some(dialog);
+                    }
+
+                    if let Some(dialog) = &mut open_file_dialog {
+                        if dialog.show(ctx).selected() {
+                            if let Some(file) = dialog.path() {
+                                opened_file = Some(file.to_path_buf());
+                            }
+                        }
+                    }
                     ui.end_row();
+
+                    if let Some(ref path) = opened_file {
+                        ui.label("Selected Certificate: ");
+                        ui.label(path.to_string_lossy());
+                        ui.end_row();
+                    }
 
                     ui.label("Loglevel: ");
                     egui::ComboBox::from_id_salt("Loglevel")
