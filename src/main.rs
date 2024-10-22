@@ -4,7 +4,7 @@ mod models;
 
 use anyhow::{Context as anyhow_context, Result};
 use dotenv::dotenv;
-use eframe::egui::{self, Context, Vec2, Window};
+use eframe::egui::{self, Color32, Context, Theme, Vec2, Window};
 use log::{debug, error, info};
 use models::{Loglevel, TracingLevel, WCSConfig, WWCPConfig, WizepassAuthConfig, WizepassConfig};
 
@@ -51,7 +51,7 @@ fn main() -> eframe::Result {
     }
 
     eframe::run_simple_native("Wizepass config", options, move |ctx, _frame| {
-        // ctx.set_theme(Theme::Light);
+        ctx.set_theme(Theme::Light);
         egui_extras::install_image_loaders(ctx);
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered_justified(|ui| {
@@ -74,12 +74,14 @@ fn main() -> eframe::Result {
                 .spacing([8.0, 10.0])
                 .striped(true)
                 .show(ui, |ui| {
+                    ui.style_mut().visuals.extreme_bg_color = Color32::LIGHT_GRAY;
                     let url = ui.label("Wizepass url: ");
                     ui.text_edit_singleline(&mut wizepass_auth_config.url)
                         .labelled_by(url.id);
                     ui.end_row();
 
                     let instance_id = ui.label("Instance ID: ");
+                    ui.style_mut().visuals.extreme_bg_color = Color32::LIGHT_GRAY;
                     ui.text_edit_singleline(&mut wizepass_auth_config.instance_id)
                         .labelled_by(instance_id.id);
                     ui.end_row();
